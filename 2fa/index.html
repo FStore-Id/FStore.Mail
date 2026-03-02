@@ -35,6 +35,10 @@
       outline: none;
       background: #18181b;
     }
+    .clean-input.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 1px #ef4444;
+    }
 
     .glass-panel {
       background: rgba(24, 24, 27, 0.6);
@@ -42,7 +46,10 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    /* Keyframe for Toast Notification */
+    #code {
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
     @keyframes slideIn {
         from { transform: translateY(100%); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
@@ -76,9 +83,9 @@
         </div>
       </div>
 
-      <div class="flex flex-col items-center justify-center space-y-8 cursor-pointer" onclick="copyCode()">
+      <div class="flex flex-col items-center justify-center space-y-8 cursor-pointer" onclick="copyCode()" title="Klik untuk menyalin kode">
         <div class="relative">
-          <div id="code" class="text-5xl font-mono font-medium text-white tracking-[0.15em] tabular-nums select-none transition-all duration-300">
+          <div id="code" class="text-4xl sm:text-5xl font-mono font-medium text-white tracking-[0.15em] tabular-nums select-none">
             ------
           </div>
         </div>
@@ -89,7 +96,7 @@
             <span id="timer-sec" class="font-mono text-zinc-400">30s</span>
           </div>
           <div class="h-1 w-full bg-zinc-800/50 rounded-full overflow-hidden">
-            <div id="progress-bar" class="h-full bg-white rounded-full transition-all duration-1000 ease-linear w-full opacity-80"></div>
+            <div id="progress-bar" class="h-full bg-white rounded-full w-full"></div>
           </div>
         </div>
       </div>
@@ -97,22 +104,35 @@
 
     <div class="space-y-4">
       
+      <!-- Input dengan icon hapus (X) dan error icon -->
       <div class="relative group">
-        <input id="secret" type="password" placeholder="Paste Secret Key (e.g. MFURV...)" class="w-full clean-input rounded-xl pl-4 pr-10 py-3 text-sm font-mono placeholder-zinc-600 bg-zinc-900/50 focus:bg-zinc-900">
-        <button id="toggle-btn" onclick="toggleVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-zinc-600 hover:text-zinc-300 transition-colors">
-          <svg class="w-4 h-4" id="eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path id="eye-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path id="eye-open-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        <!-- Secret key selalu terlihat (type="text") -->
+        <input id="secret" type="text" placeholder="Paste Secret Key" 
+               class="w-full clean-input rounded-xl pl-4 pr-14 py-3 text-sm font-mono placeholder-zinc-600 bg-zinc-900/50 focus:bg-zinc-900">
+        
+        <!-- Ikon error (segitiga seru) -->
+        <div id="error-icon" class="absolute right-8 top-1/2 -translate-y-1/2 hidden text-red-500" title="Secret tidak valid">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+
+        <!-- Ikon hapus (X) -->
+        <button id="clear-btn" onclick="clearSecret()" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-zinc-600 hover:text-zinc-300 transition-colors" title="Hapus secret" aria-label="Hapus secret">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
+      
+      <div id="secret-error" class="text-xs text-red-400 px-2 hidden">Karakter tidak valid dalam secret key. Hanya huruf A-Z dan angka 2-7 yang diperbolehkan.</div>
 
       <div class="grid grid-cols-2 gap-3">
-        <button onclick="copyShareLink()" class="flex items-center justify-center gap-2 px-4 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl text-xs font-semibold transition-colors">
+        <button onclick="copyShareLink()" class="flex items-center justify-center gap-2 px-4 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl text-xs font-semibold transition-colors" aria-label="Salin link berbagi">
            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
            Share Key
         </button>
-        <a href="https://wa.me/6285133334542" target="_blank" class="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-600 rounded-xl text-xs font-semibold transition-all">
+        <a href="https://wa.me/6285133334542" target="_blank" class="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-600 rounded-xl text-xs font-semibold transition-all" aria-label="Hubungi dukungan">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
           Support
         </a>
@@ -164,6 +184,11 @@
   </div>
 
   <script>
+    function isValidBase32(str) {
+      const base32Regex = /^[A-Z2-7]+=*$/i;
+      return base32Regex.test(str.replace(/\s+/g, ''));
+    }
+
     function base32ToBytes(base32) {
       const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
       let bits = "", bytes = [];
@@ -181,6 +206,7 @@
 
     async function generateTOTP(secret) {
       if (!secret) return "------";
+      if (!isValidBase32(secret)) return "------";
       try {
           const keyBytes = base32ToBytes(secret);
           if (keyBytes.length === 0) return "------";
@@ -194,25 +220,58 @@
           const offset = hmac[hmac.length - 1] & 0xf;
           const code = (((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff)) % 1000000;
           return code.toString().padStart(6, "0");
-      } catch (e) { return "Error"; }
+      } catch (e) { 
+        console.error("TOTP Error:", e);
+        return "------"; 
+      }
     }
 
     const secretInput = document.getElementById("secret");
     const codeDisplay = document.getElementById("code");
     const timerSec = document.getElementById("timer-sec");
     const progressBar = document.getElementById("progress-bar");
+    const errorDiv = document.getElementById("secret-error");
+    const errorIcon = document.getElementById("error-icon");
 
     function saveSecret(secret) { localStorage.setItem('wap_secret', secret); }
 
+    function validateSecret(secret) {
+      if (!secret) {
+        errorDiv.classList.add('hidden');
+        errorIcon.classList.add('hidden');
+        secretInput.classList.remove('error');
+        return true;
+      }
+      const isValid = isValidBase32(secret);
+      if (!isValid) {
+        errorDiv.classList.remove('hidden');
+        errorIcon.classList.remove('hidden');
+        secretInput.classList.add('error');
+      } else {
+        errorDiv.classList.add('hidden');
+        errorIcon.classList.add('hidden');
+        secretInput.classList.remove('error');
+      }
+      return isValid;
+    }
+
     async function updateCode() {
       const secret = secretInput.value.trim();
-      const newCode = await generateTOTP(secret);
+      const isValid = validateSecret(secret);
+      let newCode;
+      if (!isValid && secret !== "") {
+        newCode = "------";
+      } else {
+        newCode = await generateTOTP(secret);
+      }
       
       if(codeDisplay.textContent.trim() !== newCode) {
           codeDisplay.style.opacity = '0.5';
+          codeDisplay.style.transform = 'scale(0.95)';
           setTimeout(() => {
               codeDisplay.textContent = newCode;
               codeDisplay.style.opacity = '1';
+              codeDisplay.style.transform = 'scale(1)';
           }, 150);
       }
 
@@ -264,24 +323,16 @@
         }, duration);
     }
     
-    function toggleVisibility() {
-        const type = secretInput.type;
-        const eyeIcon = document.getElementById('eye-icon');
-        
-        if (type === 'password') {
-            secretInput.type = 'text';
-            eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 1.669 0 3.298.508 4.673 1.439m-4.673 5.561a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0"/>`;
-        } else {
-            secretInput.type = 'password';
-            eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
-        }
-    }
-    
     function copyShareLink() {
         const secret = secretInput.value.trim().replace(/\s/g, '').toUpperCase();
         
         if (!secret) {
             showToast("⚠️ Masukkan Secret Key terlebih dahulu.", 3000);
+            return;
+        }
+        
+        if (!isValidBase32(secret)) {
+            showToast("⚠️ Secret Key tidak valid. Periksa kembali.", 3000);
             return;
         }
         
@@ -293,6 +344,14 @@
         });
     }
 
+    function clearSecret() {
+        secretInput.value = '';
+        saveSecret('');
+        validateSecret('');
+        updateCode();
+        showToast("🧹 Secret dihapus", 2000);
+    }
+
     window.addEventListener('load', () => {
       const params = new URLSearchParams(window.location.search);
       const urlKey = params.get('key');
@@ -302,27 +361,21 @@
           const rawKey = urlKey.replace(/\s/g, '').toUpperCase();
           secretInput.value = rawKey;
           saveSecret(rawKey);
-          
-          if (rawKey.length > 0) {
-              secretInput.type = 'text'; 
-              document.getElementById('eye-icon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 1.669 0 3.298.508 4.673 1.439m-4.673 5.561a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0"/>`;
-          }
-          
+          // Tidak perlu mengubah type atau icon mata karena sudah tidak ada
           window.history.replaceState({}, document.title, window.location.pathname);
       } else if (storedKey) {
           secretInput.value = storedKey;
-          secretInput.type = 'password';
       }
 
       updateCode();
       setInterval(updateCode, 1000);
 
       secretInput.addEventListener('input', () => {
-          saveSecret(secretInput.value.trim());
+          const secret = secretInput.value.trim();
+          saveSecret(secret);
+          validateSecret(secret);
           updateCode();
       });
-      
-      document.addEventListener("keydown", function(e) { if (e.keyCode == 123) { e.preventDefault(); return false; } });
     });
   </script>
 </body>
