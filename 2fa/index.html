@@ -1,1 +1,329 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authenticator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #09090b;
+      --card-bg: #18181b;
+      --border: #27272a;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-body);
+      color: #fafafa;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .clean-input {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: white;
+      transition: all 0.2s ease;
+    }
+    .clean-input:focus {
+      border-color: #52525b;
+      outline: none;
+      background: #18181b;
+    }
 
+    .glass-panel {
+      background: rgba(24, 24, 27, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Keyframe for Toast Notification */
+    @keyframes slideIn {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateY(0); opacity: 1; }
+        to { transform: translateY(100%); opacity: 0; }
+    }
+    .toast-enter { animation: slideIn 0.3s forwards; }
+    .toast-exit { animation: slideOut 0.3s forwards; }
+  </style>
+</head>
+<body class="min-h-screen w-full flex flex-col items-center justify-center p-4 selection:bg-white/20">
+
+  <main class="w-full max-w-sm flex flex-col gap-6">
+    
+    <header class="text-center space-y-2">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 mb-2 shadow-sm overflow-hidden p-1">
+        <img src="logo.png" alt="Authenticator Logo" class="w-full h-full object-contain">
+      </div>
+      <h1 class="text-xl font-semibold text-white tracking-tight">Authenticator</h1>
+      <p class="text-sm text-zinc-500">FStore Official - Secure Client-Side 2FA</p>
+    </header>
+
+    <div class="glass-panel rounded-2xl p-8 relative overflow-hidden group shadow-2xl shadow-black/50">
+      
+      <div id="copy-feedback" class="absolute inset-0 z-20 flex items-center justify-center bg-zinc-900/90 backdrop-blur-sm transition-all duration-200 opacity-0 pointer-events-none">
+        <div class="flex flex-col items-center gap-2">
+          <svg class="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          <span class="text-sm font-medium text-zinc-200">Code Copied</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center justify-center space-y-8 cursor-pointer" onclick="copyCode()">
+        <div class="relative">
+          <div id="code" class="text-5xl font-mono font-medium text-white tracking-[0.15em] tabular-nums select-none transition-all duration-300">
+            ------
+          </div>
+        </div>
+
+        <div class="w-full space-y-3">
+          <div class="flex justify-between text-xs font-medium text-zinc-500 uppercase tracking-wider">
+            <span>Refresh in</span>
+            <span id="timer-sec" class="font-mono text-zinc-400">30s</span>
+          </div>
+          <div class="h-1 w-full bg-zinc-800/50 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-full bg-white rounded-full transition-all duration-1000 ease-linear w-full opacity-80"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      
+      <div class="relative group">
+        <input id="secret" type="password" placeholder="Paste Secret Key (e.g. MFURV...)" class="w-full clean-input rounded-xl pl-4 pr-10 py-3 text-sm font-mono placeholder-zinc-600 bg-zinc-900/50 focus:bg-zinc-900">
+        <button id="toggle-btn" onclick="toggleVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-zinc-600 hover:text-zinc-300 transition-colors">
+          <svg class="w-4 h-4" id="eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path id="eye-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path id="eye-open-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="copyShareLink()" class="flex items-center justify-center gap-2 px-4 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl text-xs font-semibold transition-colors">
+           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+           Share Key
+        </button>
+        <a href="https://wa.me/6285133334542" target="_blank" class="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-600 rounded-xl text-xs font-semibold transition-all">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          Support
+        </a>
+      </div>
+    </div>
+
+    <div id="usage-guide" class="mt-8 pt-4 pb-2 space-y-5">
+        <h2 class="text-base font-semibold text-zinc-400 border-b border-zinc-800 pb-2 mb-4 tracking-wider uppercase">PANDUAN PENGGUNAAN</h2>
+        
+        <div class="flex gap-4">
+            <div class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/30">1</div>
+            <div class="flex-grow space-y-1">
+                <p class="font-semibold text-sm text-white">Metode Paling Mudah (Via Link)</p>
+                <p class="text-xs text-zinc-500">
+                    Jika Anda menerima **Link Akses Penuh** dari Admin/CS (misalnya: <code class="text-blue-400">https://2fa-fstore.netlify.app/?key=HENCEU7BER3UM</code>), cukup **buka link tersebut**.
+                    <br class="hidden sm:inline-block">Secret Key akan otomatis terisi, dan kode 2FA akan langsung muncul. **Klik kode 6 digit** untuk menyalin.
+                </p>
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <div class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/30">2</div>
+            <div class="flex-grow space-y-1">
+                <p class="font-semibold text-sm text-white">Input Kunci Secara Manual</p>
+                <p class="text-xs text-zinc-500">
+                    Jika Anda hanya menerima Secret Key berupa teks, tempelkan (**Paste**) kunci tersebut ke kolom input di atas. 
+                    <br class="hidden sm:inline-block">Kode 2FA akan muncul dan diperbarui otomatis. Kunci Anda tersimpan aman secara lokal di *browser*.
+                </p>
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <div class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-yellow-500/10 text-yellow-400 text-xs font-bold border border-yellow-500/30">3</div>
+            <div class="flex-grow space-y-1">
+                <p class="font-semibold text-sm text-white">Membuat Link Akses Cepat</p>
+                <p class="text-xs text-zinc-500">
+                    Masukkan Secret Key pada kolom input, lalu klik tombol **"Share Key"**. Link akses penuh akan **langsung tersalin** ke *clipboard* dan siap dibagikan kepada pengguna.
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer class="mt-8 text-center">
+      <p class="text-[10px] text-zinc-700 font-medium">Copyright &copy; 2023 FStore Official. All Rights Reserved.</p>
+    </footer>
+
+  </main>
+  
+  <div id="toast-container" class="fixed bottom-4 w-full flex justify-center p-4 pointer-events-none">
+  </div>
+
+  <script>
+    function base32ToBytes(base32) {
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+      let bits = "", bytes = [];
+      base32 = base32.replace(/=+$/, "").toUpperCase().replace(/\s+/g, "");
+      for (let char of base32) {
+        let val = alphabet.indexOf(char);
+        if (val < 0) continue;
+        bits += val.toString(2).padStart(5, "0");
+      }
+      for (let i = 0; i + 8 <= bits.length; i += 8) {
+        bytes.push(parseInt(bits.substr(i, 8), 2));
+      }
+      return new Uint8Array(bytes);
+    }
+
+    async function generateTOTP(secret) {
+      if (!secret) return "------";
+      try {
+          const keyBytes = base32ToBytes(secret);
+          if (keyBytes.length === 0) return "------";
+          const epoch = Math.floor(Date.now() / 1000);
+          const counter = Math.floor(epoch / 30);
+          const buffer = new ArrayBuffer(8);
+          const view = new DataView(buffer);
+          view.setUint32(4, counter, false); 
+          const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+          const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, buffer));
+          const offset = hmac[hmac.length - 1] & 0xf;
+          const code = (((hmac[offset] & 0x7f) << 24) | ((hmac[offset + 1] & 0xff) << 16) | ((hmac[offset + 2] & 0xff) << 8) | (hmac[offset + 3] & 0xff)) % 1000000;
+          return code.toString().padStart(6, "0");
+      } catch (e) { return "Error"; }
+    }
+
+    const secretInput = document.getElementById("secret");
+    const codeDisplay = document.getElementById("code");
+    const timerSec = document.getElementById("timer-sec");
+    const progressBar = document.getElementById("progress-bar");
+
+    function saveSecret(secret) { localStorage.setItem('wap_secret', secret); }
+
+    async function updateCode() {
+      const secret = secretInput.value.trim();
+      const newCode = await generateTOTP(secret);
+      
+      if(codeDisplay.textContent.trim() !== newCode) {
+          codeDisplay.style.opacity = '0.5';
+          setTimeout(() => {
+              codeDisplay.textContent = newCode;
+              codeDisplay.style.opacity = '1';
+          }, 150);
+      }
+
+      const epoch = Math.floor(Date.now() / 1000);
+      const remain = 30 - (epoch % 30);
+      timerSec.textContent = `${remain}s`;
+      const percentage = (remain / 30) * 100;
+      progressBar.style.width = `${percentage}%`;
+      
+      if (remain <= 5) {
+        progressBar.classList.remove("bg-white");
+        progressBar.classList.add("bg-red-500");
+        codeDisplay.classList.add("text-red-500");
+        codeDisplay.classList.remove("text-white");
+      } else {
+        progressBar.classList.add("bg-white");
+        progressBar.classList.remove("bg-red-500");
+        codeDisplay.classList.add("text-white");
+        codeDisplay.classList.remove("text-red-500");
+      }
+    }
+
+    function copyCode() {
+      const code = codeDisplay.textContent.trim();
+      if (code && code !== "------") {
+        navigator.clipboard.writeText(code);
+        const feedback = document.getElementById('copy-feedback');
+        feedback.classList.remove('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+            feedback.classList.add('opacity-0', 'pointer-events-none');
+        }, 1500);
+      }
+    }
+    
+    function showToast(message, duration = 3000) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'bg-zinc-700 text-white px-4 py-2 rounded-xl shadow-lg text-sm font-medium pointer-events-auto border border-zinc-600 toast-enter';
+        toast.textContent = message;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.remove('toast-enter');
+            toast.classList.add('toast-exit');
+            toast.addEventListener('animationend', () => {
+                toast.remove();
+            });
+        }, duration);
+    }
+    
+    function toggleVisibility() {
+        const type = secretInput.type;
+        const eyeIcon = document.getElementById('eye-icon');
+        
+        if (type === 'password') {
+            secretInput.type = 'text';
+            eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 1.669 0 3.298.508 4.673 1.439m-4.673 5.561a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0"/>`;
+        } else {
+            secretInput.type = 'password';
+            eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
+        }
+    }
+    
+    function copyShareLink() {
+        const secret = secretInput.value.trim().replace(/\s/g, '').toUpperCase();
+        
+        if (!secret) {
+            showToast("⚠️ Masukkan Secret Key terlebih dahulu.", 3000);
+            return;
+        }
+        
+        const url = `${window.location.origin}${window.location.pathname}?key=${secret}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast("✅ Share Link berhasil disalin!", 3000);
+        }).catch(err => {
+            showToast("❌ Gagal menyalin link. Pastikan browser mengizinkan akses clipboard.", 5000);
+        });
+    }
+
+    window.addEventListener('load', () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlKey = params.get('key');
+      const storedKey = localStorage.getItem('wap_secret');
+
+      if (urlKey) {
+          const rawKey = urlKey.replace(/\s/g, '').toUpperCase();
+          secretInput.value = rawKey;
+          saveSecret(rawKey);
+          
+          if (rawKey.length > 0) {
+              secretInput.type = 'text'; 
+              document.getElementById('eye-icon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 1.669 0 3.298.508 4.673 1.439m-4.673 5.561a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0"/>`;
+          }
+          
+          window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (storedKey) {
+          secretInput.value = storedKey;
+          secretInput.type = 'password';
+      }
+
+      updateCode();
+      setInterval(updateCode, 1000);
+
+      secretInput.addEventListener('input', () => {
+          saveSecret(secretInput.value.trim());
+          updateCode();
+      });
+      
+      document.addEventListener("keydown", function(e) { if (e.keyCode == 123) { e.preventDefault(); return false; } });
+    });
+  </script>
+</body>
+</html>
